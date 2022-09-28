@@ -1,0 +1,56 @@
+The steps to run land-cover classification on Sentinel-2 and Planet scope images
+
+1 - Getting raw data- two modality images
+   Multispectural images, Planet Scope provides 4-channels (R,G,B, and NIR)
+  Sentinel-2 provides 12-Channels but we selected 4-Channels (R,G,B, and SWIR)
+  
+  Now we have 5 images as follows
+	-One Planet scope 3224 x 3168 x 4
+	-Two Sentinel-2 images, original 10 x x 12 and rescaled 3224 x 3168 x 12
+        -Two Sentinel-1 images, original 10 x x 2 and rescaled 3224 x 3168 x 2
+
+  Either we can get data from GEE or Planet Scope web-site or our collabrators 
+ provide for us.
+  
+2- Labeling data with threasholding method and correction of some parts of labeling 
+by hand. 
+	Inputs: Different modality images (the same size images)
+	Output: Label mask of the images with 7-classes
+
+   Semi_Thresholding_labeling.m MATLAB file is used to read the images and create label masks 
+for the images. 
+
+   While calculating these, the rescaled images of Sentinel-1 and Sentinel-2
+are used. Rescaled images are the same size with Planet Scope image. 
+  
+  The following indeces are calculated and used to trhresholding 7-classes 
+ (7 classes are no_label, active pond, transition pond, inactive pond, forest, 
+agriculture/vegitation, no vegitation/sand, build-up )
+   - SWIR-Green ratio for water index
+   - Green-Red ratio for pond color
+   - NIR-red ratio for vegitation index
+   - NDBI = (SWIR - NIR) / (SWIR + NIR) for urban/build-up index
+   
+3- Creating dataset from the images from different modalities and created label mask.
+
+	Inputs: Different modality images (the same size images) and Label mask of the images with 7-classes
+	Outputs: Sentinel-2(data_s2.mat), PlanetScope(data_p.mat), and Label mask(label.mat) all data. 
+                 And, train, test, and validation data split in 0.7, 0.2, and 0.1 ranges.
+                 The x,y coordinates of each tile also saved as tile_list 
+
+  - Saving_32sz_images.m MATLAB file is used to create 32x32x4 tile images. 
+  While creating the data, 16 pixels overlaping images saved as a sample from each tile.
+  And the label for each tile is decided according to the majority voting of the 
+mask of each tile.
+  Because the SimCLR framework of constrastive learning is used, the data stored as rows for
+each tile which is 1x4096 size. 
+
+4- SimCLR model is experimented on data either in multimodal or for each modality images.
+
+	Inputs: Train, test, and validation data with labels in '.mat' format.
+	Outputs: Predicted label for each test data.
+
+    
+  main.py(SimCLR folder) is used to experiment the model in Pytorch.
+  According to the channel size and modalities, model.py, and myutils.py files need some modifications.
+
